@@ -1,10 +1,7 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using KModkit;
 
 public class colorHexagonsScript : MonoBehaviour {
 
@@ -134,12 +131,12 @@ public class colorHexagonsScript : MonoBehaviour {
     // Use this for initialization
     void Start () {
         PickNewStart:
-        startingLocation = UnityEngine.Random.Range(0, diagramColors.Length);
+        startingLocation = Random.Range(0, diagramColors.Length);
         if (diagramColors[startingLocation] == '.' || diagramColors[startingLocation] == ',') {
             goto PickNewStart;
         } else {
             PickNewDirection:
-            chosenDirection = UnityEngine.Random.Range(0, 6);
+            chosenDirection = Random.Range(0, 6);
             allLocations.Add(startingLocation);
             allLocations.Add(startingLocation + directions[chosenDirection]);
             allLocations.Add(allLocations[1] + directions[chosenDirection]);
@@ -150,7 +147,7 @@ public class colorHexagonsScript : MonoBehaviour {
                 allLocations.Clear();
                 goto PickNewDirection;
             } else {
-                correctHex = UnityEngine.Random.Range(0, 6);
+                correctHex = Random.Range(0, 6);
                 for (int i = 0; i < 6; i++) {
                     texts[i].text = diagramDigits[allLocations[i]].ToString();
                     if (i == correctHex) {
@@ -166,7 +163,7 @@ public class colorHexagonsScript : MonoBehaviour {
                             default: Debug.Log("Things screwed up " + diagramColors[allLocations[i]]); break;
                         }
                     } else {
-                        randomColor = UnityEngine.Random.Range(0, 8);
+                        randomColor = Random.Range(0, 8);
                         switch (diagramColors[allLocations[i]]) {
                             case 'K': while (randomColor == 0) {randomColor = UnityEngine.Random.Range(0, 8);} colorsOnHexes.Add(randomColor); break;
                             case 'B': while (randomColor == 1) {randomColor = UnityEngine.Random.Range(0, 8);} colorsOnHexes.Add(randomColor); break;
@@ -194,11 +191,19 @@ public class colorHexagonsScript : MonoBehaviour {
 
     void hexPress(KMSelectable pressedHex) {
         pressedHex.AddInteractionPunch();
+        Audio.PlaySoundAtTransform("press", pressedHex.transform);
         for (int i = 0; i < 6; i++) {
             if (!moduleSolved) {
                 if (pressedHex == hexes[i]) {
                     if (i == correctHex) {
-                        Debug.LogFormat("[Color Hexagons #{0}] You pressed Hex {1}, which is correct. Module solved.", moduleId, i);
+                        Debug.LogFormat("[Color Hexagons #{0}] You pressed Hex {1}, which is correct. Module solved.", moduleId, i + 1);
+                        int rando = Random.Range(1, 101);
+                        if (rando < 90)
+                            Audio.PlaySoundAtTransform("hexa", transform);
+                        else if (rando < 100)
+                            Audio.PlaySoundAtTransform("superhexa", transform);
+                        else if (rando == 100)
+                            Audio.PlaySoundAtTransform("line", transform);
                         GetComponent<KMBombModule>().HandlePass();
                         moduleSolved = true;
                         backing.GetComponent<MeshRenderer>().material = backWithTint;
@@ -222,7 +227,7 @@ public class colorHexagonsScript : MonoBehaviour {
                             texts[j].color = textColors[1];
                         }
                     } else {
-                        Debug.LogFormat("[Color Hexagons #{0}] You pressed Hex {1}, which is incorrect. Strike!", moduleId, i);
+                        Debug.LogFormat("[Color Hexagons #{0}] You pressed Hex {1}, which is incorrect. Strike!", moduleId, i + 1);
                         GetComponent<KMBombModule>().HandleStrike();
                     }
                 }
@@ -255,4 +260,46 @@ public class colorHexagonsScript : MonoBehaviour {
         }
     }
 
+    //twitch plays
+    #pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} press <#> [Presses the button in the specified position '#' from left to right (1-6)]";
+    #pragma warning restore 414
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        string[] parameters = command.Split(' ');
+        if (Regex.IsMatch(parameters[0], @"^\s*press\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            if (parameters.Length > 2)
+            {
+                yield return "sendtochaterror Too many parameters!";
+            }
+            else if (parameters.Length == 2)
+            {
+                int temp = -1;
+                if (!int.TryParse(parameters[1], out temp))
+                {
+                    yield return "sendtochaterror The specified position '" + parameters[1] + "' is invalid!";
+                    yield break;
+                }
+                if (temp < 1 || temp > 6)
+                {
+                    yield return "sendtochaterror The specified position '" + parameters[1] + "' is out of range 1-6!";
+                    yield break;
+                }
+                hexes[temp - 1].OnInteract();
+            }
+            else if (parameters.Length == 1)
+            {
+                yield return "sendtochaterror Please specify the position of the button you wish to press!";
+            }
+            yield break;
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        yield return null;
+        hexes[correctHex].OnInteract();
+    }
 }
