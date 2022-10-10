@@ -308,7 +308,7 @@ GameObject:
   - component: {fileID: 114139553842080666}
   - component: {fileID: 114484473669268100}
   m_Layer: 0
-  m_Name: Template
+  m_Name: Color Hexagons
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
