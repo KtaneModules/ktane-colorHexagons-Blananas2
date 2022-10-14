@@ -7,6 +7,7 @@ public class colorHexagonsScript : MonoBehaviour {
 
     public KMBombInfo Bomb;
     public KMAudio Audio;
+    public KMColorblindMode CBthing;
 
     public KMSelectable[] hexes;
     public Material[] colors; //K,  B,  G,  C,  R,  M,  Y,  W
@@ -17,6 +18,7 @@ public class colorHexagonsScript : MonoBehaviour {
     public Material[] colorChannels;
     public Renderer ren;
     public Renderer[] rens;
+    public TextMesh[] CBtexts;
 
     private string diagramColors =
     ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,"+
@@ -114,6 +116,8 @@ public class colorHexagonsScript : MonoBehaviour {
     private int red = 0;
     private int green = 0;
     private int blue = 0;
+    bool CBactive = false;
+    string CBletters = "kbgcrmyw";
 
     //Logging
     static int moduleIdCounter = 1;
@@ -130,6 +134,10 @@ public class colorHexagonsScript : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+        if (CBthing.ColorblindModeActive) {
+            CBactive = true;
+        }
+
         PickNewStart:
         startingLocation = Random.Range(0, diagramColors.Length);
         if (diagramColors[startingLocation] == '.' || diagramColors[startingLocation] == ',') {
@@ -179,8 +187,13 @@ public class colorHexagonsScript : MonoBehaviour {
                     hexes[i].GetComponent<MeshRenderer>().material = colors[colorsOnHexes[i]];
                     if (colorsOnHexes[i] == 0 || colorsOnHexes[i] == 1) {
                         texts[i].color = textColors[1];
+                        CBtexts[i].color = textColors[1];
                     } else {
                         texts[i].color = textColors[0];
+                        CBtexts[i].color = textColors[0];
+                    }
+                    if (CBactive) {
+                        CBtexts[i].text = CBletters[colorsOnHexes[i]].ToString();
                     }
                     Debug.LogFormat("[Color Hexagons #{0}] Hex {1} is {2} on {3}.{4}", moduleId, i + 1, diagramDigits[allLocations[i]], colorNames[colorsOnHexes[i]], correctHex == i ? " ← ✓" : "");
                 }
@@ -225,6 +238,7 @@ public class colorHexagonsScript : MonoBehaviour {
                         rens[5].material.color = new Color(0f, 0f, (float) blue/255);
                         for (int j = 0; j < 6; j++) {
                             texts[j].color = textColors[1];
+                            CBtexts[j].text = "";
                         }
                     } else {
                         Debug.LogFormat("[Color Hexagons #{0}] You pressed Hex {1}, which is incorrect. Strike!", moduleId, i + 1);
@@ -262,12 +276,22 @@ public class colorHexagonsScript : MonoBehaviour {
 
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} press <#> [Presses the button in the specified position '#' from left to right (1-6)]";
+    private readonly string TwitchHelpMessage = @"!{0} hex <#> [Presses the button in the specified position '#' from left to right (1-6)] | !{0} colorblind [Toggles colorblind mode]";
     #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
+        if (Regex.IsMatch(command, @"^\s*colorblind\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) || Regex.IsMatch(command, @"^\s*cb\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            CBactive = !CBactive;
+            for (int i = 0; i < 6; i++) {
+                CBtexts[i].text = CBactive ? CBletters[colorsOnHexes[i]].ToString() : " ";
+            }
+            yield break;
+        }
+
         string[] parameters = command.Split(' ');
-        if (Regex.IsMatch(parameters[0], @"^\s*press\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(parameters[0], @"^\s*press\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) || Regex.IsMatch(parameters[0], @"^\s*hex\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) || Regex.IsMatch(parameters[0], @"^\s*submit\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             yield return null;
             if (parameters.Length > 2)
